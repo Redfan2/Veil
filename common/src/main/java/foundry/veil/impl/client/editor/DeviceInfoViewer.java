@@ -1,5 +1,6 @@
 package foundry.veil.impl.client.editor;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.editor.SingleWindowEditor;
 import foundry.veil.api.client.imgui.VeilImGuiUtil;
 import foundry.veil.api.client.render.VeilRenderSystem;
@@ -41,6 +42,7 @@ public class DeviceInfoViewer extends SingleWindowEditor {
     private static final Component GL_TRANSFORM_FEEDBACK = Component.translatable("editor.veil.device_info.opengl.transform_feedback");
     private static final Component GL_ATOMIC_COUNTER = Component.translatable("editor.veil.device_info.opengl.atomic_counter");
     private static final Component GL_SHADER_STORAGE = Component.translatable("editor.veil.device_info.opengl.shader_storage");
+    private static final Component GL_TEXTURE = Component.translatable("editor.veil.device_info.opengl.texture");
     private static final Component GL_FRAMEBUFFER = Component.translatable("editor.veil.device_info.opengl.framebuffer");
     private static final Component CL_PLATFORMS = Component.translatable("editor.veil.device_info.opencl.platforms");
     private static final Component CL_DEVICES = Component.translatable("editor.veil.device_info.opencl.devices");
@@ -106,6 +108,7 @@ public class DeviceInfoViewer extends SingleWindowEditor {
         flagText("editor.veil.device_info.opengl.feature_flag.transform_feedback", VeilRenderSystem.transformFeedbackSupported(), "Whether transform feedback can be used");
         flagText("editor.veil.device_info.opengl.feature_flag.texture_multi_bind", VeilRenderSystem.textureMultibindSupported(), "Whether glBindTextures can be used instead of glBindTexture");
         flagText("editor.veil.device_info.opengl.feature_flag.sparse_buffers", VeilRenderSystem.sparseBuffersSupported(), "Whether sparse buffers can be used");
+        flagText("editor.veil.device_info.opengl.feature_flag.direct_state_access", VeilRenderSystem.directStateAccessSupported(), "Whether direct state accesss can be used");
         ImGui.separator();
 
         GLCapabilities caps = GL.getCapabilities();
@@ -165,6 +168,10 @@ public class DeviceInfoViewer extends SingleWindowEditor {
         text("editor.veil.device_info.opengl.shader_storage.max_output_resources", shaderStorageBuffers ? glGetInteger(GL_MAX_COMBINED_SHADER_OUTPUT_RESOURCES) : null, "The total number of shader storage blocks, image variables, and fragment shader outputs across all active programs cannot exceed this number. This is the \"amount of stuff\" that a sequence of shaders can write to (barring Transform Feedback).");
         ImGui.separator();
 
+        title(GL_TEXTURE);
+        text("editor.veil.device_info.opengl.texture.max_texture_size", RenderSystem.maxSupportedTextureSize(), null);
+        text("editor.veil.device_info.opengl.texture.max_array_texture_layers", VeilRenderSystem.maxArrayTextureLayers(), null);
+
         title(GL_FRAMEBUFFER);
         text("editor.veil.device_info.opengl.framebuffer.max_color_attachments", VeilRenderSystem.maxColorAttachments(), null);
         text("editor.veil.device_info.opengl.framebuffer.max_samples", VeilRenderSystem.maxSamples(), null);
@@ -200,8 +207,8 @@ public class DeviceInfoViewer extends SingleWindowEditor {
             VeilOpenCL.DeviceInfo[] devices = platform.devices();
             title(CL_DEVICES);
             for (int j = 0; j < devices.length; j++) {
-                VeilOpenCL.DeviceInfo device = devices[i];
-                if (!ImGui.collapsingHeader(I18n.get("editor.veil.device_info.opencl.device", device.name(), device.id()), i == 0 ? ImGuiTreeNodeFlags.DefaultOpen : 0)) {
+                VeilOpenCL.DeviceInfo device = devices[j];
+                if (!ImGui.collapsingHeader(I18n.get("editor.veil.device_info.opencl.device", device.name(), device.id()), j == 0 ? ImGuiTreeNodeFlags.DefaultOpen : 0)) {
                     continue;
                 }
 

@@ -1,7 +1,6 @@
 package foundry.veil.api.client.editor;
 
 import foundry.veil.Veil;
-import foundry.veil.api.client.imgui.VeilImGuiUtil;
 import foundry.veil.api.client.registry.VeilResourceEditorRegistry;
 import foundry.veil.api.resource.editor.ResourceFileEditor;
 import foundry.veil.api.util.CompositeReloadListener;
@@ -60,7 +59,7 @@ public class EditorManager implements PreparableReloadListener {
 
         if (ImGui.beginMainMenuBar()) {
             ImFont font = ImGui.getFont();
-            float dingleWidth = font.calcTextSizeAX(ImGui.getFontSize(), Float.MAX_VALUE, 0, "Veil ") + 4;
+            float dingleWidth = font.calcTextSizeAX(ImGui.getFontSize(), Float.MAX_VALUE, 0, " Veil ") + 4;
             float dingleHeight = ImGui.getTextLineHeightWithSpacing() + 2;
             ImGui.getWindowDrawList().addRectFilled(0f, 0f, dingleWidth, dingleHeight, ImGui.getColorU32(ImGuiCol.FrameBgHovered));
             ImGui.text("Veil ");

@@ -1,6 +1,5 @@
 package foundry.veil.impl.client.render.pipeline;
 
-import com.mojang.blaze3d.pipeline.RenderTarget;
 import foundry.veil.Veil;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.VeilRenderer;
@@ -9,7 +8,6 @@ import foundry.veil.api.client.render.framebuffer.FramebufferAttachmentDefinitio
 import foundry.veil.api.client.render.framebuffer.VeilFramebuffers;
 import foundry.veil.api.client.render.post.PostPipeline;
 import foundry.veil.api.client.render.post.PostProcessingManager;
-import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -27,19 +25,22 @@ public final class VeilFirstPersonRenderer {
     }
 
     public static void bind() {
-        RenderTarget mainRenderTarget = Minecraft.getInstance().getMainRenderTarget();
-        int w = mainRenderTarget.width;
-        int h = mainRenderTarget.height;
+        AdvancedFbo postTarget = VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.POST);
+        AdvancedFbo mainRenderTarget = postTarget != null ? postTarget : AdvancedFbo.getMainFramebuffer();
+        int w = mainRenderTarget.getWidth();
+        int h = mainRenderTarget.getHeight();
+        int framebufferTexture = mainRenderTarget.getColorTextureAttachment(0).getId();
         if (firstPerson == null || firstPerson.getWidth() != w || firstPerson.getHeight() != h) {
             free();
             firstPerson = AdvancedFbo.withSize(w, h)
-                    .addColorTextureWrapper(mainRenderTarget.getColorTextureId(), w, h)
+                    .addColorTextureWrapper(framebufferTexture)
                     .setFormat(FramebufferAttachmentDefinition.Format.DEPTH_COMPONENT)
                     .setDepthTextureBuffer()
                     .build(true);
         }
         VeilRenderSystem.renderer().getFramebufferManager().setFramebuffer(VeilFramebuffers.FIRST_PERSON, firstPerson);
         firstPerson.bind(false);
+        firstPerson.setColorAttachmentTexture(0, framebufferTexture);
     }
 
     public static void unbind() {

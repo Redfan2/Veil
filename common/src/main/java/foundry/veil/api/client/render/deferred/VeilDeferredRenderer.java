@@ -2,6 +2,7 @@ package foundry.veil.api.client.render.deferred;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.Veil;
+import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.VeilRenderer;
 import foundry.veil.api.client.render.deferred.light.renderer.LightRenderer;
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
@@ -239,6 +240,11 @@ public class VeilDeferredRenderer implements PreparableReloadListener, NativeRes
     @ApiStatus.Internal
     public void blit() {
         if (!this.isEnabled() || this.state == RendererState.DISABLED) {
+            // Resolve the main framebuffer to the post one for later post-processing
+            AdvancedFbo postFramebuffer = VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.POST);
+            if (postFramebuffer != null) {
+                AdvancedFbo.getMainFramebuffer().resolveToAdvancedFbo(postFramebuffer);
+            }
             return;
         }
 
@@ -278,8 +284,9 @@ public class VeilDeferredRenderer implements PreparableReloadListener, NativeRes
             RenderSystem.disableBlend();
         }
 
-        profiler.popPush("resolve");
-        post.resolveToFramebuffer(Minecraft.getInstance().getMainRenderTarget());
+        // Don't resolve to the main framebuffer to preserve the HDR data
+//        profiler.popPush("resolve");
+//        post.resolveToFramebuffer(Minecraft.getInstance().getMainRenderTarget());
         profiler.pop();
 
         profiler.pop();

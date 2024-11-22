@@ -1,12 +1,19 @@
 package foundry.veil.api.util;
 
-import com.mojang.datafixers.util.Pair;
-import com.mojang.serialization.*;
+import com.mojang.datafixers.util.Either;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import foundry.veil.Veil;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ExtraCodecs;
 import org.joml.*;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 public class CodecUtil {
 
@@ -35,5 +42,39 @@ public class CodecUtil {
             return DataResult.error(() -> "Vector" + size + "f must have " + size + " elements!");
         }
         return DataResult.success(list);
+    }
+
+    public static <T> Codec<List<T>> singleOrList(Codec<T> codec) {
+        return Codec.either(
+                codec.flatComapMap(List::of,
+                                l -> l.size() == 1
+                                        ? DataResult.success(l.get(0))
+                                        : DataResult.error(() -> "List must have exactly one element.")),
+                ExtraCodecs.nonEmptyList(codec.listOf()))
+                .xmap(e -> e.map(Function.identity(), Function.identity()),
+                        l -> l.size() == 1 ? Either.left(l) : Either.right(l));
+    }
+  
+    /**
+     * Creates a codec which can accept either resource locations like `veil:cube`
+     * but also accepts legacy-style names like `CUBE` (used when things used to be
+     * enums, but are now registries)
+     */
+    public static <T> Codec<T> registryOrLegacyCodec(Registry<T> registry) {
+        Codec<T> legacyCodec = Codec.STRING
+                .comapFlatMap(
+                        name -> ResourceLocation.read(Veil.MODID + ":" + name.toLowerCase(Locale.ROOT)),
+                        ResourceLocation::toString)
+                .flatXmap(
+                        loc -> Optional.ofNullable(registry.get(loc))
+                                .map(DataResult::success)
+                                .orElseGet(() -> DataResult.error(() -> "Unknown registry key in " + registry.key() + ": " + loc)),
+                        object -> registry.getResourceKey(object)
+                                .map(ResourceKey::location)
+                                .map(DataResult::success)
+                                .orElseGet(() -> DataResult.error(() -> "Unknown registry element in " + registry.key() + ":" + object)));
+
+        return Codec.either(registry.byNameCodec(), legacyCodec)
+                .xmap(e -> e.map(Function.identity(), Function.identity()), Either::left);
     }
 }

@@ -143,40 +143,34 @@ public class PostProcessingManager extends CodecReloadListener<CompositePostPipe
 
     @ApiStatus.Internal
     public void runPipeline() {
-        if (this.activePipelines.isEmpty()) {
-            return;
+        if (!this.activePipelines.isEmpty()) {
+            VeilClientPlatform platform = VeilClient.clientPlatform();
+            this.context.begin();
+            this.setup();
+            int activeTexture = GlStateManager._getActiveTexture();
+
+            this.activePipelines.sort(PIPELINE_SORTER);
+            for (ProfileEntry entry : this.activePipelines) {
+                ResourceLocation id = entry.getPipeline();
+                PostPipeline pipeline = this.pipelines.get(id);
+                if (pipeline != null) {
+                    platform.preVeilPostProcessing(id, pipeline, this.context);
+                    try {
+                        pipeline.apply(this.context);
+                        this.clearPipeline();
+                    } catch (Exception e) {
+                        Veil.LOGGER.error("Error running pipeline {}", id, e);
+                    }
+                    platform.postVeilPostProcessing(id, pipeline, this.context);
+                }
+            }
+
+            RenderSystem.activeTexture(activeTexture);
+            this.clear();
+            this.context.end();
         }
 
         AdvancedFbo postFramebuffer = VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.POST);
-        if (postFramebuffer != null) {
-            AdvancedFbo.getMainFramebuffer().resolveToAdvancedFbo(postFramebuffer);
-        }
-
-        VeilClientPlatform platform = VeilClient.clientPlatform();
-        this.context.begin();
-        this.setup();
-        int activeTexture = GlStateManager._getActiveTexture();
-
-        this.activePipelines.sort(PIPELINE_SORTER);
-        for (ProfileEntry entry : this.activePipelines) {
-            ResourceLocation id = entry.getPipeline();
-            PostPipeline pipeline = this.pipelines.get(id);
-            if (pipeline != null) {
-                platform.preVeilPostProcessing(id, pipeline, this.context);
-                try {
-                    pipeline.apply(this.context);
-                    this.clearPipeline();
-                } catch (Exception e) {
-                    Veil.LOGGER.error("Error running pipeline {}", id, e);
-                }
-                platform.postVeilPostProcessing(id, pipeline, this.context);
-            }
-        }
-
-        RenderSystem.activeTexture(activeTexture);
-        this.clear();
-        this.context.end();
-
         if (postFramebuffer != null) {
             postFramebuffer.resolveToFramebuffer(Minecraft.getInstance().getMainRenderTarget());
         }
@@ -299,7 +293,6 @@ public class PostProcessingManager extends CodecReloadListener<CompositePostPipe
     public void free() {
         this.pipelines.values().forEach(PostPipeline::free);
         this.pipelines.clear();
-        this.context.free();
     }
 
     /**

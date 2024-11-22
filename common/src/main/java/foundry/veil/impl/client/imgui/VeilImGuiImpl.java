@@ -30,24 +30,50 @@ public class VeilImGuiImpl implements VeilImGui {
 
     private final ImGuiImplGlfw implGlfw;
     private final ImGuiImplGl3 implGl3;
+    private final ImGuiContext oldImGuiContext;
+    private final ImPlotContext oldImPlotContext;
     private final ImGuiContext imGuiContext;
     private final ImPlotContext imPlotContext;
     private boolean active;
+    private int beginLayer;
 
     private VeilImGuiImpl(long window) {
-        this.implGlfw = new ImGuiImplGlfw();
+        this.implGlfw = new VeilImGuiImplGlfw();
         this.implGl3 = new ImGuiImplGl3();
 
-        this.imGuiContext = ImGui.createContext();
-        this.imPlotContext = ImPlot.createContext();
+        this.oldImGuiContext = new ImGuiContext(ImGui.getCurrentContext().ptr);
+        this.oldImPlotContext = new ImPlotContext(ImPlot.getCurrentContext().ptr);
+
+        this.imGuiContext = new ImGuiContext(ImGui.createContext().ptr);
+        this.imPlotContext = new ImPlotContext(ImPlot.createContext().ptr);
         this.implGlfw.init(window, true);
         this.implGl3.init("#version 410 core");
 
         VeilImGuiStylesheet.initStyles();
+
+        ImGui.setCurrentContext(this.oldImGuiContext);
+        ImPlot.setCurrentContext(this.oldImPlotContext);
     }
 
     @Override
     public void begin() {
+        this.beginLayer++;
+
+        if (ImGui.getCurrentContext().ptr == this.imGuiContext.ptr) {
+            return;
+        }
+
+        this.oldImGuiContext.ptr = ImGui.getCurrentContext().ptr;
+        this.oldImPlotContext.ptr = ImPlot.getCurrentContext().ptr;
+
+        ImGui.setCurrentContext(this.imGuiContext);
+        ImPlot.setCurrentContext(this.imPlotContext);
+    }
+
+    @Override
+    public void beginFrame() {
+        this.begin();
+
         if (this.active) {
             Veil.LOGGER.error("ImGui failed to render previous frame, disposing");
             ImGui.endFrame();
@@ -57,14 +83,19 @@ public class VeilImGuiImpl implements VeilImGui {
         ImGui.newFrame();
 
         VeilRenderSystem.renderer().getEditorManager().render();
+
+        this.end();
     }
 
     @Override
-    public void end() {
+    public void endFrame() {
         if (!this.active) {
             Veil.LOGGER.error("ImGui state de-synced");
+            this.end();
             return;
         }
+        this.begin();
+
         this.active = false;
         VeilRenderSystem.renderer().getEditorManager().renderLast();
         ImGui.render();
@@ -75,6 +106,20 @@ public class VeilImGuiImpl implements VeilImGui {
             ImGui.updatePlatformWindows();
             ImGui.renderPlatformWindowsDefault();
             glfwMakeContextCurrent(backupWindowPtr);
+        }
+
+        if (this.beginLayer > 1) {
+            Veil.LOGGER.error("Mismatched begin/end during frame");
+            this.beginLayer = 1;
+        }
+        this.end();
+    }
+
+    @Override
+    public void end() {
+        if (--this.beginLayer == 0) {
+            ImGui.setCurrentContext(this.oldImGuiContext);
+            ImPlot.setCurrentContext(this.oldImPlotContext);
         }
     }
 
@@ -125,10 +170,12 @@ public class VeilImGuiImpl implements VeilImGui {
 
     @Override
     public void free() {
+        this.begin();
         this.implGlfw.dispose();
         this.implGl3.dispose();
         ImGui.destroyContext(this.imGuiContext);
         ImPlot.destroyContext(this.imPlotContext);
+        this.end();
     }
 
     public static void init(long window) {

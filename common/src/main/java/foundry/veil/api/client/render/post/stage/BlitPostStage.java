@@ -69,7 +69,7 @@ public class BlitPostStage extends FramebufferPostStage {
         context.applySamplers(shader);
         this.setupFramebuffer(context, shader);
         shader.applyShaderSamplers(context, 0);
-        context.drawScreenQuad();
+        VeilRenderSystem.drawScreenQuad();
     }
 
     @Override

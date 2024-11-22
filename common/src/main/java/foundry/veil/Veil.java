@@ -1,6 +1,8 @@
 package foundry.veil;
 
+import foundry.veil.api.client.imgui.VeilImGui;
 import foundry.veil.api.molang.VeilMolang;
+import foundry.veil.impl.client.imgui.VeilImGuiImpl;
 import foundry.veil.platform.VeilPlatform;
 import gg.moonflower.molangcompiler.api.MolangCompiler;
 import net.minecraft.resources.ResourceLocation;
@@ -24,7 +26,7 @@ public class Veil {
 
     static {
         DEBUG = System.getProperty("veil.debug") != null;
-        IMGUI = System.getProperty("veil.disableImgui") == null && !PLATFORM.isModLoaded("axiom");
+        IMGUI = System.getProperty("veil.disableImgui") == null;
         VERBOSE_SHADER_ERRORS = System.getProperty("veil.verboseShaderErrors") != null;
     }
 
@@ -38,6 +40,34 @@ public class Veil {
             LOGGER.info("ImGui Disabled");
         }
         VeilMolang.set(MolangCompiler.create(MolangCompiler.DEFAULT_FLAGS, Veil.class.getClassLoader()));
+    }
+
+    /**
+     * Runs the specified code with the correct ImGui context.
+     *
+     * @param task The ImGui task to run
+     */
+    public static void withImGui(Runnable task) {
+        beginImGui();
+        task.run();
+        endImGui();
+    }
+
+    /**
+     * <p>Enables writing ImGui to the screen. This useful for debugging during the normal render loop.</p>
+     * <p>Be sure to call {@link #endImGui()} when done.</p>
+     */
+    public static VeilImGui beginImGui() {
+        VeilImGui imGui = VeilImGuiImpl.get();
+        imGui.begin();
+        return imGui;
+    }
+
+    /**
+     * Disables ImGui writing. This should be called after done using ImGui during the main render loop.
+     */
+    public static void endImGui() {
+        VeilImGuiImpl.get().end();
     }
 
     public static ResourceLocation veilPath(String path) {

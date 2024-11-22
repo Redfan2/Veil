@@ -30,6 +30,7 @@ public interface TextureUniformAccess {
      * @param framebuffer The framebuffer to bind samplers from
      */
     default void setFramebufferSamplers(AdvancedFbo framebuffer) {
+        boolean setDiffuseSampler = false;
         for (int i = 0; i < framebuffer.getColorAttachments(); i++) {
             if (!framebuffer.isColorTextureAttachment(i)) {
                 continue;
@@ -39,6 +40,10 @@ public interface TextureUniformAccess {
             this.addSampler("DiffuseSampler" + i, attachment.getId());
             if (attachment.getName() != null) {
                 this.addSampler(attachment.getName(), attachment.getId());
+            }
+            if (!setDiffuseSampler) {
+                this.addSampler("DiffuseSampler", attachment.getId());
+                setDiffuseSampler = true;
             }
         }
 
@@ -53,12 +58,14 @@ public interface TextureUniformAccess {
 
     /**
      * Adds a listener for sampler updates.
+     *
      * @param listener The listener instance
      */
     void addSamplerListener(SamplerListener listener);
 
     /**
      * Removes a listener from sampler updates.
+     *
      * @param listener The listener instance
      */
     void removeSamplerListener(SamplerListener listener);
@@ -110,6 +117,7 @@ public interface TextureUniformAccess {
 
         /**
          * Called to update the listener with the new texture units for the specified textures.
+         *
          * @param boundSamplers The textures bound
          */
         void onUpdateSamplers(Object2IntMap<CharSequence> boundSamplers);

@@ -113,17 +113,22 @@ public class EditorFontManager implements PreparableReloadListener {
     }
 
     public void rebuildFonts() {
-        ImFontAtlas atlas = ImGui.getIO().getFonts();
-        atlas.clear();
-        this.defaultFont = atlas.addFontDefault();
+        try {
+            Veil.beginImGui();
+            ImFontAtlas atlas = ImGui.getIO().getFonts();
+            atlas.clear();
+            this.defaultFont = atlas.addFontDefault();
 
-        this.fonts.clear();
-        for (Map.Entry<ResourceLocation, FontPackBuilder> entry : this.fontBuilders.entrySet()) {
-            Veil.LOGGER.info("Built {}", entry.getKey());
-            this.fonts.put(entry.getKey(), entry.getValue().build(FONT_SIZE));
+            this.fonts.clear();
+            for (Map.Entry<ResourceLocation, FontPackBuilder> entry : this.fontBuilders.entrySet()) {
+                Veil.LOGGER.info("Built {}", entry.getKey());
+                this.fonts.put(entry.getKey(), entry.getValue().build(FONT_SIZE));
+            }
+            ImGui.getIO().setFontDefault(this.getFont(EditorManager.DEFAULT_FONT, false, false));
+            VeilImGuiImpl.get().updateFonts();
+        } finally {
+            Veil.endImGui();
         }
-        ImGui.getIO().setFontDefault(this.getFont(EditorManager.DEFAULT_FONT, false, false));
-        VeilImGuiImpl.get().updateFonts();
     }
 
     private record FontPack(ImFont regular, ImFont italic, ImFont bold, ImFont boldItalic) implements NativeResource {

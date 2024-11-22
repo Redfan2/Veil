@@ -19,6 +19,12 @@ import java.util.Objects;
  */
 public class ColorTheme {
 
+    public static final ColorTheme DEFAULT = new ColorTheme() {{
+        addColor("background", Color.VANILLA_TOOLTIP_BACKGROUND);
+        addColor("topBorder", Color.VANILLA_TOOLTIP_BORDER_TOP);
+        addColor("bottomBorder", Color.VANILLA_TOOLTIP_BORDER_BOTTOM);
+    }};
+
     private final Map<String, Color> colors = new HashMap<>();
     private final Map<String, IThemeProperty<?>> properties = new HashMap<>();
 

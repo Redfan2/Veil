@@ -16,6 +16,10 @@ public interface VeilImGui extends NativeResource {
 
     void begin();
 
+    void beginFrame();
+
+    void endFrame();
+
     void end();
 
     void onGrabMouse();
